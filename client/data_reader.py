@@ -47,9 +47,3 @@ class DataReader:
 
         device = ADLManager.getInstance().getDevices()[0]
         return device.getCurrentUsage()
-
-
-while True:
-    data_reader = DataReader()
-    print(data_reader.get_pc_data())
-    sleep(1)
