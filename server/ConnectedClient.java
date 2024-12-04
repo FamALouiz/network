@@ -20,14 +20,16 @@ public class ConnectedClient {
     }
 
     public void readMessages() {
-        String line = "";
-        while (!line.equals(Server.STOP_STRING)) {
-            try {
-                line = in.readUTF();
-            } catch (IOException e) {
-                e.printStackTrace();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println("Client " + id + ": " + line);
+                if (line.equals(Server.STOP_STRING)) {
+                    break;
+                }
             }
-            System.out.println("Client " + id + ": " + line);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         System.out.println("Client " + id + ": Client Disconnected");
     }
