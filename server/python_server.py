@@ -40,4 +40,36 @@ def start_tcp_server():
         print(f"New connection from {client_address}")
         threading.Thread(target=handle_client, args=(client_socket, client_address), daemon=True).start()
 
+# Web Server
+class WebServer(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        
+        
+        
+        # OKOK We still need to edit this part for the colors thing.
+        
+        with data_lock:
+            html = "<html><head><title>Resource Info</title></head><body>"
+            html += "<h1>Resource Information</h1>"
+            for client, resources in client_data.items():
+                html += f"<h2>Client {client}</h2><pre>{resources}</pre>"
+            html += "</body></html>"
 
+        self.wfile.write(html.encode('utf-8'))
+
+def start_web_server():
+    http_server = HTTPServer(('0.0.0.0', 8080), WebServer)
+    print("Web Server running on port 8080...")
+    http_server.serve_forever()
+
+
+
+
+if __name__ == "__main__":
+    tcp_thread = threading.Thread(target=start_tcp_server, daemon=True)
+    tcp_thread.start()
+
+    start_web_server()
