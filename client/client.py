@@ -24,13 +24,15 @@ class Client:
                 time.sleep(self.retry_interval)
         return False
 
-    def send(self, data: str = None) -> bool:
+    def send(self, data: str = None, set_threshold: bool = False) -> bool:
+        set_thresh = "SET_THRESHOLD"
+        data = "CPU"
         try:
-            data_to_send = data.encode(
-                'utf-8') or pickle.dumps(self.data_reader.get_pc_data())
+            data_to_send = self.data_reader.get_pc_data()
             print(f"Sending data: {data_to_send}")
+            data_str = f"{set_thresh if set_threshold else data} cpu:{data_to_send['cpu']} ram:{data_to_send['ram']} gpu:{data_to_send['gpu']}\n"
             self.client.send(
-                data_to_send
+                data_str.encode('utf-8')
             )
             return True
         except Exception as e:
@@ -51,12 +53,13 @@ class Client:
 
 
 def main():
-    client = Client(3030)
+    client = Client(3033)
     if client.connect('localhost'):
+        client.send(set_threshold=True)
         while True:
-            if not client.send("Hello from client"):
+            if not client.send():
                 break
-            time.sleep(1)
+            time.sleep(2)
     client.close()
 
 

@@ -7,7 +7,7 @@ public class Server {
     public static final int PORT = 3033;
     public static final String STOP_STRING = "##";
     private final Map<Integer, List<String>> clientData = new HashMap<>();
-    private final Map<Integer, Map<String, Integer>> clientThresholds = new HashMap<>();
+    private final Map<Integer, Map<String, Double>> clientThresholds = new HashMap<>();
     private volatile boolean isAlertTriggered = false; // Flag for resource threshold alert
 
     public Server() throws IOException {
@@ -28,11 +28,13 @@ public class Server {
                 Socket clientSocket = server.accept();
                 index++;
                 synchronized (clientData) {
-                    clientData.put(index, new ArrayList<>()); // Initialize chat history for the client , can also change it to no chat history
+                    clientData.put(index, new ArrayList<>()); // Initialize chat history for the client , can also
+                                                              // change it to no chat history
                 }
                 int finalIndex = index;
                 new Thread(() -> {
-                    ConnectedClient client = new ConnectedClient(clientSocket, finalIndex, clientData, clientThresholds, this);
+                    ConnectedClient client = new ConnectedClient(clientSocket, finalIndex, clientData, clientThresholds,
+                            this);
                     client.readMessages();
                     client.close();
                 }).start();
@@ -47,7 +49,7 @@ public class Server {
             System.out.println("HTTP Server started on port 8080");
             while (true) {
                 try (Socket socket = httpServer.accept();
-                     PrintWriter out = new PrintWriter(socket.getOutputStream())) {
+                        PrintWriter out = new PrintWriter(socket.getOutputStream())) {
 
                     // Generate the webpage with the latest client data
                     String html = generateHtmlPage();
@@ -89,10 +91,9 @@ public class Server {
         return html.toString();
     }
 
-
-    public void checkClientData(int clientId, int cpuUsage, int ramUsage, int gpuUsage) {
+    public void checkClientData(int clientId, double cpuUsage, double ramUsage, double gpuUsage) {
         // Retrieve the thresholds set for the specific client
-        Map<String, Integer> thresholds = clientThresholds.get(clientId);
+        Map<String, Double> thresholds = clientThresholds.get(clientId);
         if (thresholds != null) {// Ensure thresholds exist for the client
             boolean alert = false;
             // Check if cpu ram or gpu usage exceeds the threshold
@@ -116,9 +117,8 @@ public class Server {
         }
     }
 
-
-    public void setClientThreshold(int clientId, int cpuThreshold, int ramThreshold, int gpuThreshold) {
-        Map<String, Integer> thresholds = new HashMap<>();
+    public void setClientThreshold(int clientId, double cpuThreshold, double ramThreshold, double gpuThreshold) {
+        Map<String, Double> thresholds = new HashMap<>();
         thresholds.put("CPU", cpuThreshold);
         thresholds.put("RAM", ramThreshold);
         thresholds.put("GPU", gpuThreshold);

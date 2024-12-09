@@ -8,15 +8,19 @@ public class ConnectedClient {
     private final BufferedReader in;
     private final int id;
     // Map to store each client's message history.
-    // Key: Client ID (Integer), Value: List of messages (List<String>) sent by the client.
+    // Key: Client ID (Integer), Value: List of messages (List<String>) sent by the
+    // client.
     private final Map<Integer, List<String>> clientData;
     // Map to store resource usage thresholds set by each client.
-    // Key: Client ID (Integer), Value: Map of resource thresholds (e.g., "CPU", "RAM", "GPU").
-    // The inner map contains resource names as keys and their corresponding threshold values as integers.
-    private final Map<Integer, Map<String, Integer>> clientThresholds;
+    // Key: Client ID (Integer), Value: Map of resource thresholds (e.g., "CPU",
+    // "RAM", "GPU").
+    // The inner map contains resource names as keys and their corresponding
+    // threshold values as integers.
+    private final Map<Integer, Map<String, Double>> clientThresholds;
     private final Server server;
 
-    public ConnectedClient(Socket clientSocket, int id, Map<Integer, List<String>> clientData, Map<Integer, Map<String, Integer>> clientThresholds, Server server) {
+    public ConnectedClient(Socket clientSocket, int id, Map<Integer, List<String>> clientData,
+            Map<Integer, Map<String, Double>> clientThresholds, Server server) {
         this.clientSocket = clientSocket;
         this.id = id;
         this.clientData = clientData;
@@ -35,7 +39,8 @@ public class ConnectedClient {
         while (true) {
             try {
                 line = in.readLine(); // Read plain text input
-                if (line == null || line.equals(Server.STOP_STRING)) break; // Handle disconnection
+                if (line == null || line.equals(Server.STOP_STRING))
+                    break; // Handle disconnection
                 synchronized (clientData) {
                     clientData.get(id).add(line); // Append the message to the client's history
                 }
@@ -45,11 +50,12 @@ public class ConnectedClient {
                     try {
                         String[] parts = line.split(" ");
                         if (parts.length == 4) {
-                            int cpuThreshold = Integer.parseInt(parts[1].split(":")[1]);
-                            int ramThreshold = Integer.parseInt(parts[2].split(":")[1]);
-                            int gpuThreshold = Integer.parseInt(parts[3].split(":")[1]);
+                            double cpuThreshold = Double.parseDouble(parts[1].split(":")[1]);
+                            double ramThreshold = Double.parseDouble(parts[2].split(":")[1]);
+                            double gpuThreshold = Double.parseDouble(parts[3].split(":")[1]);
                             server.setClientThreshold(id, cpuThreshold, ramThreshold, gpuThreshold);
-                            System.out.println("Client " + id + " set thresholds: CPU=" + cpuThreshold + " RAM=" + ramThreshold + " GPU=" + gpuThreshold);
+                            System.out.println("Client " + id + " set thresholds: CPU=" + cpuThreshold + " RAM="
+                                    + ramThreshold + " GPU=" + gpuThreshold);
                         } else {
                             System.out.println("Invalid threshold format.");
                         }
@@ -59,9 +65,9 @@ public class ConnectedClient {
                 } else if (line.startsWith("CPU")) {
                     try {
                         String[] parts = line.split(" ");
-                        int cpuUsage = Integer.parseInt(parts[0].split(":")[1].trim());
-                        int ramUsage = Integer.parseInt(parts[1].split(":")[1].trim());
-                        int gpuUsage = Integer.parseInt(parts[2].split(":")[1].trim());
+                        double cpuUsage = Double.parseDouble(parts[1].split(":")[1].trim());
+                        double ramUsage = Double.parseDouble(parts[2].split(":")[1].trim());
+                        double gpuUsage = Double.parseDouble(parts[3].split(":")[1].trim());
                         server.checkClientData(id, cpuUsage, ramUsage, gpuUsage);
                     } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
                         System.out.println("Error parsing resource data: " + e.getMessage());
@@ -80,7 +86,6 @@ public class ConnectedClient {
         }
         System.out.println("Client " + id + ": Client Disconnected");
     }
-
 
     public void close() {
         try {
