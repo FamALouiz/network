@@ -4,7 +4,10 @@ import java.util.*;
 
 public class Server {
     private final ServerSocket server;
+    private final ServerSocket internalConnection;
+    private Socket webSocket;
     public static final int PORT = 3033;
+    public static final int INTERNAL_PORT = 4040;
     public static final String STOP_STRING = "##";
     private final Map<Integer, List<String>> clientData = new HashMap<>();
     private final Map<Integer, Map<String, Double>> clientThresholds = new HashMap<>();
@@ -14,11 +17,44 @@ public class Server {
         server = new ServerSocket(PORT);
         System.out.println("Server started on port " + PORT);
 
+        internalConnection = new ServerSocket(4040);
         // Accept client connections in a separate thread
         new Thread(this::acceptClients).start();
+        new Thread(this::acceptInternalWebServer).start();
+        // // Serve the web page
+        // serveWebPage();
+    }
 
-        // Serve the web page
-        serveWebPage();
+    private void acceptInternalWebServer() {
+        while (true) {
+            try {
+                this.webSocket = internalConnection.accept();
+                new Thread(() -> {
+                    try {
+                        BufferedReader in = new BufferedReader(new InputStreamReader(this.webSocket.getInputStream()));
+                        while (true) {
+                            String message = in.readLine();
+                            if (message == null) {
+                                break;
+                            }
+                            String[] parts = message.split(" ");
+                            int clientId = Integer.parseInt(parts[0].split(":")[1]);
+                            double cpuThreshold = Double.parseDouble(parts[1].split(":")[1]);
+                            double ramThreshold = Double.parseDouble(parts[2].split(":")[1]);
+                            double gpuThreshold = Double.parseDouble(parts[3].split(":")[1]);
+
+                            System.out.println("Setting thresholds for client " + clientId + " CPU: " + cpuThreshold
+                                    + " RAM: " + ramThreshold + " GPU: " + gpuThreshold);
+                            setClientThreshold(clientId, cpuThreshold, ramThreshold, gpuThreshold);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void acceptClients() {
@@ -94,6 +130,7 @@ public class Server {
     public void checkClientData(int clientId, double cpuUsage, double ramUsage, double gpuUsage) {
         // Retrieve the thresholds set for the specific client
         Map<String, Double> thresholds = clientThresholds.get(clientId);
+
         if (thresholds != null) {// Ensure thresholds exist for the client
             boolean alert = false;
             // Check if cpu ram or gpu usage exceeds the threshold
@@ -113,6 +150,16 @@ public class Server {
             // If any alert is triggered, set the flag
             synchronized (this) {
                 isAlertTriggered = alert;
+            }
+            try {
+                PrintWriter out = new PrintWriter(this.webSocket.getOutputStream());
+                System.out.println("Sending data to internal web server");
+                out.println(
+                        "Client " + clientId + " CPU: " + cpuUsage + " RAM: " + ramUsage + " GPU: " + gpuUsage
+                                + " Alert: " + alert);
+                out.flush();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }

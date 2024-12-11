@@ -1,7 +1,6 @@
 from socket import socket, AF_INET, SOCK_STREAM
 import time
 from data_reader import DataReader
-import pickle
 
 
 class Client:
